@@ -5,7 +5,7 @@ from pygame.sprite import Sprite
 class Ship(Sprite):
     """A class to manage the ship"""
 
-    def __init__(self, ai_game):
+    def __init__(self, ai_game, imagepath):
 
         """Initialize the ship with its starting position"""
         super().__init__()
@@ -14,7 +14,7 @@ class Ship(Sprite):
         self.screen_rect = ai_game.screen.get_rect()
 
         # load the ship image
-        self.image = pygame.image.load("Images/CarlRaumschiff.bmp")
+        self.image = pygame.image.load(imagepath)
         self.rect = self.image.get_rect()
 
         # start each new ship in the bottom center of the screen
@@ -44,4 +44,9 @@ class Ship(Sprite):
     def center_ship(self):
         """Center the ship on the screen"""
         self.rect.midbottom = self.screen_rect.midbottom
+        self.x = float(self.rect.x)
+    def center_ship2(self):
+        """Place the ship2 next to ship on the screen"""
+        # use lambda function to change the midbottom value of ship2 
+        self.rect.midbottom = tuple(map(lambda i,j: i+j, self.screen_rect.midbottom, (100,0)))
         self.x = float(self.rect.x)

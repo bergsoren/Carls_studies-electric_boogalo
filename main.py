@@ -34,9 +34,12 @@ class AlienInvasion:
 
         # Instantiate bullets
         self.bullets = pygame.sprite.Group()
+        self.bullets2 = pygame.sprite.Group()
 
-        # Instantiate a ship
-        self.ship = Ship(self)
+        # Instantiate a ship for player1 and player2
+        self.ship = Ship(self,"Images/CarlRaumschiff.bmp")
+        if(self.settings.multiplayer):
+            self.ship2 = Ship(self, "Images/NielsRaumschiff.bmp")
 
         # Instantiate aliens
         self.aliens = pygame.sprite.Group()
@@ -54,6 +57,8 @@ class AlienInvasion:
 
             if self.stats.game_active:
                 self.ship.update()
+                if(self.settings.multiplayer):
+                    self.ship2.update()
                 self._update_bullets()
                 self._update_aliens()
 
@@ -97,10 +102,13 @@ class AlienInvasion:
         # Get rid of any remaining aliens and bullets
         self.aliens.empty()
         self.bullets.empty()
+        self.bullets2.empty()
 
         # Create a new fleet and center the ship
         self._create_fleet()
         self.ship.center_ship()
+        if(self.settings.multiplayer):
+            self.ship2.center_ship2()
 
     def _check_keydown_events(self, event):
         """A helper method to refactor the keydown presses"""
@@ -114,6 +122,13 @@ class AlienInvasion:
             self._fire_bullet()
         elif event.key == pygame.K_p and not self.stats.game_active:
             self._start_game()
+        # ship2
+        elif event.key == pygame.K_d and self.settings.multiplayer:
+            self.ship2.moving_right = True
+        elif event.key == pygame.K_a and self.settings.multiplayer:
+            self.ship2.moving_left = True
+        elif event.key == pygame.K_w and self.stats.game_active and self.settings.multiplayer:
+            self._fire_bullet2()
 
     def _check_keyup_events(self, event):
         """A helper method to refactor key releases"""
@@ -121,22 +136,40 @@ class AlienInvasion:
             self.ship.moving_right = False
         elif event.key == pygame.K_LEFT:
             self.ship.moving_left = False
+        # ship2
+        elif event.key == pygame.K_d and self.settings.multiplayer:
+            self.ship2.moving_right = False
+        elif event.key == pygame.K_a and self.settings.multiplayer:
+            self.ship2.moving_left = False
+
 
     def _fire_bullet(self):
         """Create a new bullet and add it to the bullets group"""
         # we cereate a new bullet only if the maximum amount of bullets wasn't reached
         if len(self.bullets) < self.settings.bullets_allowed:
-            new_bullet = Bullet(self)
+            new_bullet = Bullet(self,False)
             self.bullets.add(new_bullet)
+
+    def _fire_bullet2(self):
+        """Create a new bullet and add it to the bullets group"""
+        # we create a new bullet only if the maximum amount of bullets wasn't reached
+        if len(self.bullets2) < self.settings.bullets_allowed:
+            new_bullet = Bullet(self,True)
+            self.bullets2.add(new_bullet)
 
     def _update_bullets(self):
         """Update the position of bullets and get rid of old ones"""
         # update the bullet positions
         self.bullets.update()
+        self.bullets2.update()
+
         # Getting rid of the bullets that leave the screen by looping over a copy of the original group (list)
         for bullet in self.bullets.copy():
             if bullet.rect.bottom <= 0:
                 self.bullets.remove(bullet)
+        for bullet in self.bullets2.copy():
+            if bullet.rect.bottom <= 0:
+                self.bullets2.remove(bullet)
 
         self._check_bullet_alien_collisions()
 
@@ -144,6 +177,8 @@ class AlienInvasion:
         """Respond to bullet-alien collisions"""
         # check for bullets that hit aliens and delete bullet and alien
         collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
+        collisions2 = pygame.sprite.groupcollide(self.bullets2, self.aliens, True, True)
+
         # The True statements tell pygame to delete both members that collided
         # collisions is dict with the bullet as a key and every alien it hit as a list as the value
 
@@ -152,10 +187,16 @@ class AlienInvasion:
                 self.stats.score += self.settings.alien_points * len(aliens)
             self.sb.prep_score()
             self.sb.check_high_score()
+        if collisions2:
+            for aliens in collisions2.values():
+                self.stats.score += self.settings.alien_points * len(aliens)
+            self.sb.prep_score()
+            self.sb.check_high_score()
 
         if not self.aliens:
             # Destroy existing bullets and create a new fleet
             self.bullets.empty()
+            self.bullets2.empty()
             self._create_fleet()
             self.settings.increase_speed()
 
@@ -169,8 +210,12 @@ class AlienInvasion:
         self.aliens.update()
 
         # Look for alien-ship collisions
-        if pygame.sprite.spritecollideany(self.ship, self.aliens):
-            self._ship_hit()
+        if(self.settings.multiplayer):
+            if pygame.sprite.spritecollideany(self.ship, self.aliens) or pygame.sprite.spritecollideany(self.ship2, self.aliens):
+                self._ship_hit()
+        else:
+            if pygame.sprite.spritecollideany(self.ship, self.aliens):
+                self._ship_hit()
 
         # Look for aliens hitting the bottom of the screen
         self._check_aliens_bottom()
@@ -179,7 +224,12 @@ class AlienInvasion:
         """Redraw the screen for every pass through the loop"""
         self.screen.blit(self.settings.bg_image, (0, 0))
         self.ship.blitme()
+        if(self.settings.multiplayer):
+            self.ship2.blitme()
+
         for bullet in self.bullets.sprites():
+            bullet.draw_bullet()
+        for bullet in self.bullets2.sprites():
             bullet.draw_bullet()
         self.aliens.draw(self.screen)
 
@@ -248,10 +298,14 @@ class AlienInvasion:
             # Get rid of any remaining aliens and bullets
             self.aliens.empty()
             self.bullets.empty()
+            self.bullets2.empty()
+
 
             # Create a new fleet and center the ship
             self._create_fleet()
             self.ship.center_ship()
+            if(self.settings.multiplayer):
+                self.ship2.center_ship2()
 
             # Pause after a hit
             sleep(1.0)
