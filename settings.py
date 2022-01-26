@@ -30,8 +30,11 @@ class Settings:
         # How quickly the alien points increase
         self.score_scale = 1.5
 
-        # Multiplayer?
+        # Local multiplayer?
         self.multiplayer = False
+
+        # Online multiplayer?
+        self.onlinemultiplayer = False
 
         self.initialize_dynamic_settings()
 
